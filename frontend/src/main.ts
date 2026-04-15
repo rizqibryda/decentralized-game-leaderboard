@@ -1,155 +1,148 @@
 import { isConnected, requestAccess } from '@stellar/freighter-api';
 
+// --- SELEKTOR ---
 const connectBtn = document.getElementById('connectBtn') as HTMLButtonElement;
 const scoreForm = document.getElementById('scoreForm') as HTMLFormElement;
 const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
 const tableBody = document.getElementById('tableBody') as HTMLTableSectionElement;
 
 let walletKey: string | null = null;
-let editingId: number | null = null; // Menyimpan ID data yang sedang di-edit
+let editingId: number | null = null;
 
-// Simulasi Database Lokal untuk UI
-let dummyScores: { id: number, name: string, score: number }[] = [
+// Simulasi Data (Bisa kamu ganti dengan fetch dari Soroban nanti)
+let dummyScores = [
   { id: 1, name: "Satoshi", score: 10500 },
-  { id: 2, name: "Vitalik", score: 8200 }
+  { id: 2, name: "Vitalik", score: 8200 },
+  { id: 3, name: "Iqi_Dev", score: 9500 }
 ];
 
-// 1. FUNGSI READ (Tampilkan Data)
+// --- 1. FUNGSI TAMPILKAN DATA (READ) ---
 function renderTable() {
   tableBody.innerHTML = ''; 
   
   if (dummyScores.length === 0) {
-    tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Belum ada data skor.</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: #94a3b8;">Belum ada data skor.</td></tr>';
     return;
   }
 
-  dummyScores.forEach((data) => {
+  // Urutkan skor tertinggi di atas
+  const sortedScores = [...dummyScores].sort((a, b) => b.score - a.score);
+
+  sortedScores.forEach((data, index) => {
     const row = document.createElement('tr');
+    
+    // Kita tambahkan rank badge dan style baru
     row.innerHTML = `
-      <td>${data.name}</td>
-      <td>${data.score}</td>
-      <td>
-        <button class="edit-btn" data-id="${data.id}" style="background-color:#2196F3; color:white; padding:5px 10px; font-size:12px; border:none; border-radius:3px; cursor:pointer; margin-right:5px;">Edit</button>
-        <button class="delete-btn" data-id="${data.id}" style="background-color:#f44336; color:white; padding:5px 10px; font-size:12px; border:none; border-radius:3px; cursor:pointer;">Hapus</button>
+      <td><span class="rank-badge">#${index + 1}</span></td>
+      <td style="font-weight:600; color: #f8fafc;">${data.name} ${data.name === 'Iqi_Dev' ? '⭐' : ''}</td>
+      <td style="color: #818cf8; font-family: monospace; font-weight: bold;">${data.score.toLocaleString()} PTS</td>
+      <td style="text-align: right;">
+        <button class="edit-btn" data-id="${data.id}" style="background:none; border:none; cursor:pointer; margin-right:10px;">✏️</button>
+        <button class="delete-btn" data-id="${data.id}" style="background:none; border:none; cursor:pointer;">🗑️</button>
       </td>
     `;
     tableBody.appendChild(row);
   });
 
-  // Event listener tombol Edit
+  // Pasang ulang listener untuk tombol yang baru dibuat
+  attachEventListeners();
+}
+
+// --- 2. LOGIKA TOMBOL EDIT & DELETE ---
+function attachEventListeners() {
   document.querySelectorAll('.edit-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const id = Number((e.target as HTMLButtonElement).getAttribute('data-id'));
+      const id = Number((e.currentTarget as HTMLButtonElement).getAttribute('data-id'));
       startEdit(id);
     });
   });
 
-  // Event listener tombol Hapus
   document.querySelectorAll('.delete-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const id = Number((e.target as HTMLButtonElement).getAttribute('data-id'));
+      const id = Number((e.currentTarget as HTMLButtonElement).getAttribute('data-id'));
       deleteScore(id);
     });
   });
 }
 
-// 2. FUNGSI UPDATE (Mulai proses edit)
+// --- 3. FUNGSI UPDATE (MODE EDIT) ---
 function startEdit(id: number) {
-  if (!walletKey) {
-    alert("Konek wallet dulu untuk mengubah data!");
-    return;
-  }
+  if (!walletKey) return alert("Konek wallet dulu, Qi!");
   
   const dataToEdit = dummyScores.find(score => score.id === id);
   if (dataToEdit) {
-    // Naikkan data ke form
     (document.getElementById('playerName') as HTMLInputElement).value = dataToEdit.name;
     (document.getElementById('score') as HTMLInputElement).value = dataToEdit.score.toString();
     
-    editingId = id; // Tandai bahwa kita sedang mode edit
+    editingId = id;
+    submitBtn.textContent = "✏️ Update Score";
+    submitBtn.style.background = "linear-gradient(90deg, #3b82f6, #2563eb)";
     
-    // Ubah tampilan tombol submit
-    submitBtn.textContent = "✏️ Update ke Blockchain";
-    submitBtn.style.backgroundColor = "#2196F3"; // Warna biru
-    
-    // Scroll ke atas (ke arah form)
-    document.querySelector('.card')?.scrollIntoView({ behavior: 'smooth' });
+    // Scroll halus ke form
+    document.querySelector('form')?.scrollIntoView({ behavior: 'smooth' });
   }
 }
 
-// 3. FUNGSI DELETE
+// --- 4. FUNGSI DELETE ---
 function deleteScore(id: number) {
-  if (!walletKey) {
-    alert("Konek wallet dulu untuk menghapus data!");
-    return;
-  }
+  if (!walletKey) return alert("Konek wallet dulu!");
   
-  const confirmDelete = confirm("Yakin ingin menghapus skor ini dari Blockchain?");
-  if (confirmDelete) {
-    console.log(`Menghapus data ID: ${id} dari Soroban...`);
+  if (confirm("Hapus record ini dari blockchain?")) {
     dummyScores = dummyScores.filter(score => score.id !== id);
     renderTable(); 
   }
 }
 
-// 4. LOGIKA CONNECT WALLET
+// --- 5. CONNECT WALLET ---
 connectBtn.addEventListener('click', async () => {
   const connected = await isConnected();
   if (connected) {
     try {
       const response = await requestAccess();
-      const publicKey = typeof response === 'object' ? (response as any).address : String(response);
-      walletKey = publicKey;
+      walletKey = typeof response === 'object' ? (response as any).address : String(response);
       
-      if (publicKey && publicKey.length > 10) {
-        connectBtn.textContent = `Wallet: ${publicKey.substring(0, 5)}...${publicKey.substring(publicKey.length - 4)}`;
-      } else {
-        connectBtn.textContent = "Wallet Terkoneksi!";
+      if (walletKey) {
+        connectBtn.innerHTML = `<span>🟢</span> ${walletKey.substring(0, 5)}...${walletKey.substring(walletKey.length - 4)}`;
+        connectBtn.classList.add('connected'); // Kamu bisa tambah style .connected di CSS
+        connectBtn.style.background = "rgba(76, 175, 80, 0.1)";
+        connectBtn.style.border = "1px solid #4CAF50";
+        connectBtn.style.color = "#4CAF50";
       }
-      connectBtn.style.backgroundColor = '#4CAF50';
     } catch (error) {
-      console.error("Gagal konek wallet:", error);
+      console.error("User menolak koneksi");
     }
   } else {
-    alert('Tolong install ekstensi Freighter Wallet di browser!');
+    alert('Install Freighter Wallet dulu ya!');
   }
 });
 
-// 5. FUNGSI CREATE & SAVE UPDATE (Submit Form)
+// --- 6. SUBMIT FORM (CREATE & SAVE UPDATE) ---
 scoreForm.addEventListener('submit', (e) => {
   e.preventDefault();
   
-  if (!walletKey) {
-    alert("Konek wallet dulu sebelum submit!");
-    return;
-  }
+  if (!walletKey) return alert("Konek wallet dulu!");
 
   const playerName = (document.getElementById('playerName') as HTMLInputElement).value;
   const scoreValue = Number((document.getElementById('score') as HTMLInputElement).value);
 
   if (editingId !== null) {
-    // JIKA MODE EDIT (UPDATE)
+    // UPDATE
     const index = dummyScores.findIndex(s => s.id === editingId);
     if (index !== -1) {
       dummyScores[index].name = playerName;
       dummyScores[index].score = scoreValue;
-      console.log("Update Skor di Soroban:", { id: editingId, playerName, score: scoreValue });
     }
-    
-    // Kembalikan form ke mode awal
     editingId = null;
-    submitBtn.textContent = "🚀 Submit ke Blockchain";
-    submitBtn.style.backgroundColor = "#FF9800"; // Kembali ke warna oranye
+    submitBtn.textContent = "Push to Blockchain";
+    submitBtn.style.background = "var(--primary)";
   } else {
-    // JIKA MODE CREATE (BARU)
-    const newId = Date.now();
-    dummyScores.push({ id: newId, name: playerName, score: scoreValue });
-    console.log("Submit Skor Baru ke Soroban:", { playerName, score: scoreValue });
+    // CREATE
+    dummyScores.push({ id: Date.now(), name: playerName, score: scoreValue });
   }
   
   scoreForm.reset();
   renderTable(); 
 });
 
-// Jalankan fungsi saat web dibuka
+// Initial Render
 renderTable();

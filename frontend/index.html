@@ -1,55 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Web3 Game Leaderboard</title>
-    <style>
-      body { font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
-      .card { background-color: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-top: 20px;}
-      button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-      #connectBtn { background-color: #008CBA; color: white; margin: 0 auto; display: block;}
-      #submitBtn { background-color: #FF9800; color: white; width: 100%; margin-top: 15px;}
-      .delete-btn { background-color: #f44336; color: white; padding: 5px 10px; font-size: 12px; }
-      input { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; margin-bottom: 15px;}
-      table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-      th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; }
-      th { background-color: #eee; }
-    </style>
-  </head>
-  <body>
-    <h1 style="text-align: center; color: #333;">🏆 Web3 Game Leaderboard</h1>
+    <title>Stellar Leaderboard | Web3</title>
+    <link rel="stylesheet" href="/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-glow"></div>
     
-    <button id="connectBtn">🔗 Connect Freighter Wallet</button>
+    <div class="container">
+        <header>
+            <h1>🏆 <span>Stellar</span> Leaderboard</h1>
+            <button id="connectBtn" class="btn-primary">
+                <span class="icon">🌐</span> Connect Wallet
+            </button>
+        </header>
 
-    <div class="card">
-      <h2>Catat Skor Baru (Create)</h2>
-      <form id="scoreForm">
-        <label>Nama Pemain:</label>
-        <input type="text" id="playerName" placeholder="Masukkan nama..." required />
+        <main class="grid-layout">
+            <section class="card glass">
+                <h3>📝 Submit Score</h3>
+                <form id="scoreForm">
+                    <div class="input-group">
+                        <label>Player Name</label>
+                        <input type="text" id="playerName" placeholder="e.g. Satoshi_01" required />
+                    </div>
+                    <div class="input-group">
+                        <label>Final Score</label>
+                        <input type="number" id="score" placeholder="0000" required />
+                    </div>
+                    <button type="submit" id="submitBtn" class="btn-submit">
+                        Push to Blockchain
+                    </button>
+                </form>
+            </section>
 
-        <label>Skor:</label>
-        <input type="number" id="score" placeholder="Contoh: 9500" required />
-
-        <button type="submit" id="submitBtn">🚀 Submit ke Blockchain</button>
-      </form>
-    </div>
-
-    <div class="card">
-      <h2>Leaderboard (Read & Delete)</h2>
-      <table id="scoreTable">
-        <thead>
-          <tr>
-            <th>Pemain</th>
-            <th>Skor</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody">
-          </tbody>
-      </table>
+            <section class="card glass">
+                <h3>🔥 Top Players</h3>
+                <div class="table-container">
+                    <table id="scoreTable">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Player</th>
+                                <th>Score</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
     </div>
 
     <script type="module" src="/src/main.ts"></script>
-  </body>
+</body>
 </html>
