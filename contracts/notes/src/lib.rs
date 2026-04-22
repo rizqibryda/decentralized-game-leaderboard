@@ -59,14 +59,6 @@ impl HighScoreContract {
 
 
 
-
-
-
-
-
-
-
-
 /* --- CONTOH SCRIPT ---
 
 pub fn get_notes(env: Env) -> Vec<Note> {

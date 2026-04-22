@@ -68,10 +68,21 @@ function renderTable(scores: any[]) {
     }
 
     [...scores].sort((a, b) => Number(b.score) - Number(a.score)).forEach((data, index) => {
+        
+        // --- PERBAIKAN NAMA PEMAIN ---
+        // Panggil properti 'player_name' sesuai dengan struktur di lib.rs
+        let namaPemain = data.player_name; 
+        
+        // Terjemahkan tipe data Bytes dari Soroban menjadi String biasa
+        if (namaPemain instanceof Uint8Array || typeof namaPemain === 'object') {
+            namaPemain = new TextDecoder().decode(namaPemain);
+        }
+        // -----------------------------
+
         const row = document.createElement('tr');
         row.innerHTML = `
             <td><span class="rank-badge">#${index + 1}</span></td>
-            <td style="font-weight:600; color: #f8fafc;">${data.name}</td>
+            <td style="font-weight:600; color: #f8fafc;">${namaPemain}</td> 
             <td style="color: #818cf8; font-family: monospace; font-weight: bold;">${Number(data.score).toLocaleString()} PTS</td>
             <td style="text-align: right;">
                  <span style="font-size: 0.8rem; color: #475569;">Verified ✅</span>
@@ -96,21 +107,33 @@ scoreForm.addEventListener('submit', async (e) => {
         const accountResponse = await server.getAccount(walletKey);
         
         submitBtn.textContent = "⌛ Signing Transaction...";
-        const tx = new TransactionBuilder(accountResponse, { fee: "10000" })
+        
+        let tx = new TransactionBuilder(accountResponse, { fee: "100" }) // Base fee standar
             .addOperation(contract.call(
               "add_score", 
-              xdr.ScVal.scvSymbol(playerName), // Hapus kata 'new'
-              xdr.ScVal.scvU32(Number(scoreValue)) // Hapus kata 'new'
+              xdr.ScVal.scvString(playerName), // Pakai scvString agar 100% cocok dengan String di Rust
+              xdr.ScVal.scvU32(Number(scoreValue))
           ))
             .setNetworkPassphrase(NETWORK_PASSPHRASE)
             .setTimeout(30)
             .build();
 
+        // --- INI DIA KUNCI JAWABANNYA ---
+        // Kita simulasikan dulu ke server untuk mendapatkan Footprint dan ongkos Gas
+        tx = await server.prepareTransaction(tx) as any;
+
+        submitBtn.textContent = "⌛ Signing Transaction...";
+        
+        // Minta tanda tangan (Sekarang Freighter pasti bilang sukses/hijau!)
         const signResponse = await signTransaction(tx.toXDR(), { networkPassphrase: NETWORK_PASSPHRASE });
         if (signResponse.error) {
-            throw new Error(signResponse.error as string);
+            // Kita stringify objek error-nya biar pesannya kelihatan jelas di console
+            const errorMessage = typeof signResponse.error === 'string' 
+                ? signResponse.error 
+                : JSON.stringify(signResponse.error, null, 2);
+            
+            throw new Error(`Freighter Error: ${errorMessage}`);
         }
-
         const signedXdr = signResponse.signedTxXdr;
         
         submitBtn.textContent = "🚀 Pushing to Mainnet...";
