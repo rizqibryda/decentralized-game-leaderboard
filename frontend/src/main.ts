@@ -94,7 +94,7 @@ function renderTable(scores: any[]) {
 // --- 3. KIRIM DATA KE BLOCKCHAIN (CREATE) ---
 scoreForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!walletKey) return alert("Konek wallet dulu, Qi!");
+    if (!walletKey) return alert("Koneksikan wallet dulu!");
 
     const playerName = (document.getElementById('playerName') as HTMLInputElement).value;
     const scoreValue = BigInt((document.getElementById('score') as HTMLInputElement).value);
