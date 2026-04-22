@@ -1,5 +1,10 @@
 import { isConnected, requestAccess } from '@stellar/freighter-api';
 
+// --- KONFIGURASI MAINNET ---
+const CONTRACT_ID = "CD5IKBV232YMXHMEPNKP44746XWT2JUI3LTOPWT6T24ULFXXAJ57UCUJ";
+const NETWORK_PASSPHRASE = "Public Global Stellar Network ; September 2015";
+const RPC_URL = "https://mainnet.sorobanrpc.com";
+
 // --- SELEKTOR ---
 const connectBtn = document.getElementById('connectBtn') as HTMLButtonElement;
 const scoreForm = document.getElementById('scoreForm') as HTMLFormElement;
