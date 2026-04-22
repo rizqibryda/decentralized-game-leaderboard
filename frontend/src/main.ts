@@ -6,7 +6,8 @@ import {
     TransactionBuilder, 
     nativeToScVal, 
     Account,
-    Keypair
+    Keypair,
+    xdr
 } from '@stellar/stellar-sdk';
 
 // --- KONFIGURASI MAINNET ---
@@ -96,14 +97,16 @@ scoreForm.addEventListener('submit', async (e) => {
         
         submitBtn.textContent = "⌛ Signing Transaction...";
         const tx = new TransactionBuilder(accountResponse, { fee: "10000" })
-            .addOperation(contract.call("add_score", nativeToScVal(playerName), nativeToScVal(scoreValue)))
+            .addOperation(contract.call(
+              "add_score", 
+              xdr.ScVal.scvSymbol(playerName), // Hapus kata 'new'
+              xdr.ScVal.scvU32(Number(scoreValue)) // Hapus kata 'new'
+          ))
             .setNetworkPassphrase(NETWORK_PASSPHRASE)
             .setTimeout(30)
             .build();
 
-        // Minta tanda tangan Freighter pakai properti yang benar
         const signResponse = await signTransaction(tx.toXDR(), { networkPassphrase: NETWORK_PASSPHRASE });
-
         if (signResponse.error) {
             throw new Error(signResponse.error as string);
         }
