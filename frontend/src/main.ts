@@ -4,7 +4,6 @@ import {
     rpc, 
     scValToNative, 
     TransactionBuilder, 
-    nativeToScVal, 
     Account,
     Keypair,
     xdr
