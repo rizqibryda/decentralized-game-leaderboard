@@ -5,8 +5,8 @@ import {
     scValToNative, 
     TransactionBuilder, 
     nativeToScVal, 
-    Account, // Tambahkan ini
-    Networks 
+    Account,
+    Keypair
 } from '@stellar/stellar-sdk';
 
 // --- KONFIGURASI MAINNET ---
@@ -16,8 +16,6 @@ const NETWORK_PASSPHRASE = "Public Global Stellar Network ; September 2015";
 
 const server = new rpc.Server(RPC_URL);
 const contract = new Contract(CONTRACT_ID);
-// Alamat dummy buat simulasi baca data (gratis)
-const DUMMY_ADDRESS = "GBAF6Z6EALH6V6EALH6V6EALH6V6EALH6V6EALH6V6EALH6V6EALH6V6E";
 
 // --- SELEKTOR ---
 const connectBtn = document.getElementById('connectBtn') as HTMLButtonElement;
@@ -32,10 +30,9 @@ async function fetchLeaderboard() {
     try {
         tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: #94a3b8;">⌛ Fetching from Mainnet...</td></tr>';
         
-        // BUAT DUMMY ACCOUNT UNTUK SIMULASI
-        const dummyAccount = new Account(DUMMY_ADDRESS, "0");
-        
-        // Bangun transaksi simulasi
+        // Bangkitkan public key acak yang valid secara format
+        const randomKey = Keypair.random().publicKey();
+        const dummyAccount = new Account(randomKey, "0");
         const tx = new TransactionBuilder(dummyAccount, { fee: "100" })
             .addOperation(contract.call("get_scores"))
             .setNetworkPassphrase(NETWORK_PASSPHRASE)
@@ -45,15 +42,15 @@ async function fetchLeaderboard() {
         const response = await server.simulateTransaction(tx);
 
         if (rpc.Api.isSimulationSuccess(response)) {
-            // Kita bypass TypeScript dengan 'any' agar dia tidak protes soal tipe data 'result'
             const successData = response as any;
-            
             if (successData.result && successData.result.retval) {
                 const rawData = scValToNative(successData.result.retval);
                 renderTable(rawData);
             } else {
-                renderTable([]); // Kalau ternyata belum ada data sama sekali
+                renderTable([]); 
             }
+        } else {
+            renderTable([]);
         }
     } catch (e) {
         console.error("Gagal fetch data:", e);
@@ -69,7 +66,6 @@ function renderTable(scores: any[]) {
         return;
     }
 
-    // Urutkan dan tampilkan
     [...scores].sort((a, b) => Number(b.score) - Number(a.score)).forEach((data, index) => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -87,7 +83,7 @@ function renderTable(scores: any[]) {
 // --- 3. KIRIM DATA KE BLOCKCHAIN (CREATE) ---
 scoreForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!walletKey) return alert("Koneksikan wallet dulu, ya!");s
+    if (!walletKey) return alert("Konek wallet dulu, Qi!");
 
     const playerName = (document.getElementById('playerName') as HTMLInputElement).value;
     const scoreValue = BigInt((document.getElementById('score') as HTMLInputElement).value);
@@ -96,7 +92,6 @@ scoreForm.addEventListener('submit', async (e) => {
         submitBtn.disabled = true;
         submitBtn.textContent = "⌛ Getting Account Info...";
 
-        // Ambil data akun asli dari Mainnet
         const accountResponse = await server.getAccount(walletKey);
         
         submitBtn.textContent = "⌛ Signing Transaction...";
@@ -106,35 +101,30 @@ scoreForm.addEventListener('submit', async (e) => {
             .setTimeout(30)
             .build();
 
-// Minta tanda tangan Freighter (Pakai networkPassphrase, bukan network)
+        // Minta tanda tangan Freighter pakai properti yang benar
         const signResponse = await signTransaction(tx.toXDR(), { networkPassphrase: NETWORK_PASSPHRASE });
-        // Kalau ternyata ada error (misal kamu klik "Reject" di popup Freighter)
+
         if (signResponse.error) {
             throw new Error(signResponse.error as string);
         }
 
-        // Ekstrak string XDR-nya dari dalam objek
         const signedXdr = signResponse.signedTxXdr;
         
         submitBtn.textContent = "🚀 Pushing to Mainnet...";
-
-        // Ubah string kembali jadi objek transaksi
         const transactionToPush = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
-        // Kirim ke server (Pakai 'any' murni untuk response agar status terbaca)
         const sendResponse: any = await server.sendTransaction(transactionToPush as any);
 
         if (sendResponse && sendResponse.status === "ERROR") {
             throw new Error("Transaksi ditolak jaringan");
         }
+
         alert("Berhasil! Skor kamu sedang diproses di Blockchain.");
         scoreForm.reset();
-        
-        // Tunggu bentar sebelum refresh biar data masuk dulu ke ledger
         setTimeout(fetchLeaderboard, 5000);
 
     } catch (error) {
         console.error("Error submit:", error);
-        alert("Gagal kirim ke blockchain. Pastikan saldo XLM cukup!");
+        alert("Gagal kirim ke blockchain. Cek saldo XLM atau koneksi kamu!");
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = "Push to Blockchain";
